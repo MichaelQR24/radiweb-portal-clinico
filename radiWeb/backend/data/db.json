@@ -1,0 +1,182 @@
+{
+  "patients": [
+    {
+      "id": 1,
+      "full_name": "Juan Pérez García",
+      "dni": "12345678",
+      "age": 45,
+      "gender": "M",
+      "created_at": "2026-04-25T01:35:17.533Z",
+      "created_by": 2
+    },
+    {
+      "id": 2,
+      "full_name": "María López Sánchez",
+      "dni": "87654321",
+      "age": 32,
+      "gender": "F",
+      "created_at": "2026-04-25T01:35:17.533Z",
+      "created_by": 2
+    },
+    {
+      "id": 3,
+      "full_name": "Carlos Ruiz Mendoza",
+      "dni": "11223344",
+      "age": 58,
+      "gender": "M",
+      "created_at": "2026-04-25T01:35:17.533Z",
+      "created_by": 2
+    },
+    {
+      "id": 4,
+      "full_name": "Anghy",
+      "dni": "87546231",
+      "age": 50,
+      "gender": "F",
+      "created_at": "2026-04-25T01:40:39.288Z",
+      "created_by": 1
+    },
+    {
+      "id": 5,
+      "full_name": "Aaron",
+      "dni": "72452171",
+      "age": 23,
+      "gender": "M",
+      "created_at": "2026-04-25T01:46:55.479Z",
+      "created_by": 1
+    }
+  ],
+  "studies": [
+    {
+      "id": 1,
+      "patient_id": 1,
+      "study_type": "Resonancia Magnética (MRI)",
+      "body_area": "Cerebro",
+      "referring_doctor": "Dr. García",
+      "clinical_notes": "Cefaleas persistentes",
+      "status": "pendiente",
+      "created_by": 2,
+      "created_at": "2026-04-25T01:35:17.533Z",
+      "updated_at": "2026-04-25T01:35:17.533Z",
+      "patient_name": "Juan Pérez García",
+      "patient_dni": "12345678"
+    },
+    {
+      "id": 2,
+      "patient_id": 2,
+      "study_type": "Tomografía Computarizada (CT)",
+      "body_area": "Tórax",
+      "referring_doctor": "Dra. Morales",
+      "clinical_notes": "Control post-tratamiento",
+      "status": "enviado",
+      "created_by": 2,
+      "created_at": "2026-04-25T00:35:17.533Z",
+      "updated_at": "2026-04-25T01:35:17.533Z",
+      "patient_name": "María López Sánchez",
+      "patient_dni": "87654321"
+    },
+    {
+      "id": 3,
+      "patient_id": 3,
+      "study_type": "Rayos X",
+      "body_area": "Tórax",
+      "referring_doctor": "Dr. Vargas",
+      "clinical_notes": "Tos persistente",
+      "status": "diagnosticado",
+      "created_by": 2,
+      "created_at": "2026-04-24T01:35:17.533Z",
+      "updated_at": "2026-04-25T01:35:17.533Z",
+      "patient_name": "Carlos Ruiz Mendoza",
+      "patient_dni": "11223344"
+    },
+    {
+      "id": 4,
+      "patient_id": 4,
+      "study_type": "Ecografía",
+      "body_area": "Panza",
+      "referring_doctor": "Dr. Fabrizzzio",
+      "clinical_notes": "Trillizos",
+      "status": "pendiente",
+      "created_by": 1,
+      "created_at": "2026-04-25T01:40:39.300Z",
+      "updated_at": "2026-04-25T01:40:39.300Z",
+      "patient_name": "Anghy",
+      "patient_dni": ""
+    },
+    {
+      "id": 5,
+      "patient_id": 5,
+      "study_type": "Rayos X",
+      "body_area": "Torax",
+      "referring_doctor": "Dr. Fabrizzzio",
+      "clinical_notes": "Tos",
+      "status": "pendiente",
+      "created_by": 1,
+      "created_at": "2026-04-25T01:46:55.492Z",
+      "updated_at": "2026-04-25T01:47:19.808Z",
+      "patient_name": "Aaron",
+      "patient_dni": ""
+    }
+  ],
+  "diagnoses": {},
+  "images": {
+    "4": [
+      {
+        "id": 1777081239332,
+        "study_id": 4,
+        "original_filename": "images.jpg",
+        "blob_url": "http://localhost:3000/mock-storage/dicom-images/study-4/9a77ee38-25ba-4122-8bf7-a2a9f932b6b8_images.jpg",
+        "preview_url": "http://localhost:3000/mock-storage/dicom-images/study-4/9a77ee38-25ba-4122-8bf7-a2a9f932b6b8_images.jpg",
+        "format": "JPG",
+        "file_size_kb": 6,
+        "quality_approved": false,
+        "uploaded_at": "2026-04-25T01:40:39.332Z"
+      }
+    ],
+    "5": [
+      {
+        "id": 1777081615514,
+        "study_id": 5,
+        "original_filename": "Xray_share.jpg",
+        "blob_url": "http://localhost:3000/mock-storage/dicom-images/study-5/73bc9d21-b49a-4e82-838f-1e50e6b3c549_Xray_share.jpg",
+        "preview_url": "http://localhost:3000/mock-storage/dicom-images/study-5/73bc9d21-b49a-4e82-838f-1e50e6b3c549_Xray_share.jpg",
+        "format": "JPG",
+        "file_size_kb": 455,
+        "quality_approved": false,
+        "uploaded_at": "2026-04-25T01:46:55.514Z"
+      }
+    ]
+  },
+  "users": [
+    {
+      "id": 1,
+      "name": "Tecnólogo Demo",
+      "email": "tecnologo@radiweb.pe",
+      "password_hash": "$2b$12$demo",
+      "role": "tecnologo",
+      "is_active": true,
+      "created_at": "2026-04-25T01:42:41.671Z",
+      "last_login": "2026-04-25T01:43:34.433Z"
+    },
+    {
+      "id": 2,
+      "name": "Radiólogo Demo",
+      "email": "radiologo@radiweb.pe",
+      "password_hash": "$2b$12$demo",
+      "role": "radiologo",
+      "is_active": true,
+      "created_at": "2026-04-25T01:42:41.672Z",
+      "last_login": "2026-04-25T01:47:39.332Z"
+    },
+    {
+      "id": 3,
+      "name": "Admin Demo",
+      "email": "admin@radiweb.pe",
+      "password_hash": "$2b$12$demo",
+      "role": "admin",
+      "is_active": true,
+      "created_at": "2026-04-25T01:42:41.672Z",
+      "last_login": null
+    }
+  ]
+}
