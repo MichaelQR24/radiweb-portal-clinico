@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, tap, catchError, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse, LoginRequest, LoginResponse, User, UserRole } from '../models/models';
+import { NotificationService } from './notification.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -21,7 +22,13 @@ export class AuthService {
   constructor(
     private readonly http: HttpClient,
     private readonly router: Router,
-  ) {}
+    private readonly notifSvc: NotificationService,
+  ) {
+    // Si ya hay sesión activa (recarga de página), arrancar el polling
+    if (this.isLoggedIn()) {
+      this.notifSvc.startPolling();
+    }
+  }
 
   /**
    * Realiza el login y guarda el token JWT en localStorage.
@@ -80,6 +87,7 @@ export class AuthService {
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
     this._token.set(token);
     this._currentUser.set(user);
+    this.notifSvc.startPolling(); // Iniciar polling al iniciar sesión
   }
 
   private clearSession(): void {
@@ -87,6 +95,7 @@ export class AuthService {
     localStorage.removeItem(this.USER_KEY);
     this._token.set(null);
     this._currentUser.set(null);
+    this.notifSvc.stopPolling(); // Detener polling al cerrar sesión
   }
 
   private loadStoredToken(): string | null {

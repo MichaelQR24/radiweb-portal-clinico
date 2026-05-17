@@ -6,6 +6,7 @@ import { CreateDiagnosisDto, UpdateDiagnosisDto } from '../models/diagnosis.mode
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 import { localDb } from '../utils/localDb';
+import { createNotification } from '../services/notification.service';
 
 /**
  * POST /api/diagnoses
@@ -60,6 +61,18 @@ export async function createDiagnosis(req: Request, res: Response): Promise<void
       `, [dto.study_id]);
 
       await connection.commit();
+
+      // Notificar al tecnólogo que creó el estudio
+      const [studyInfo] = await pool.execute<RowDataPacket[]>(
+        'SELECT created_by FROM Studies WHERE id = ?',
+        [dto.study_id]
+      );
+      if (studyInfo.length > 0) {
+        await createNotification(
+          studyInfo[0].created_by,
+          `El diagnóstico del estudio #${dto.study_id} ya está disponible.`
+        );
+      }
 
       const [diagRows] = await pool.execute<RowDataPacket[]>(
           'SELECT * FROM Diagnoses WHERE id = ?',

@@ -6,6 +6,7 @@ import { CreateStudyDto, StudyStats } from '../models/study.model';
 import { DEFAULT_PAGE, DEFAULT_LIMIT } from '../utils/constants';
 import { localDb } from '../utils/localDb';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { notifyRole } from '../services/notification.service';
 
 /**
  * GET /api/studies
@@ -146,6 +147,8 @@ export async function createStudy(req: Request, res: Response): Promise<void> {
 
     const study = studyRows[0];
     await logAction(userId, 'CREATE_STUDY', 'Study', study.id, req.ip ?? '');
+    // Notificar a todos los radiólogos sobre el nuevo estudio
+    await notifyRole('radiologo', `Nuevo estudio #${study.id} (${dto.study_type}) disponible para diagnóstico.`);
     sendSuccess(res, study, 'Estudio creado exitosamente', 201);
   } catch {
     sendError(res, 'Error creando estudio', 500);

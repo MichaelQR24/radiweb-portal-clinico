@@ -78,11 +78,17 @@ import { Study, Image, Diagnosis } from '../../core/models/models';
               <div class="toolbar-group">
                 <button class="tool-btn" id="btn-zoom-in"  title="Zoom +" (click)="zoom(1.2)"><mat-icon>zoom_in</mat-icon></button>
                 <button class="tool-btn" id="btn-zoom-out" title="Zoom -" (click)="zoom(0.8)"><mat-icon>zoom_out</mat-icon></button>
-                <button class="tool-btn" id="btn-pan"      title="Desplazar"><mat-icon>open_with</mat-icon></button>
+                <button class="tool-btn" id="btn-reset" title="Restaurar Vista" (click)="resetView()"><mat-icon>filter_center_focus</mat-icon></button>
               </div>
-              <div class="toolbar-group">
-                <button class="tool-btn active" id="btn-contrast" title="Contraste/Brillo"><mat-icon>contrast</mat-icon></button>
-                <button class="tool-btn" id="btn-invert"   title="Invertir"><mat-icon>invert_colors</mat-icon></button>
+              <div class="toolbar-group" style="display:flex; flex-direction:column; justify-content:center; gap: 4px; padding: 0 16px;">
+                <div style="display:flex; align-items:center; gap:8px; color:rgba(255,255,255,.7)" title="Brillo">
+                  <mat-icon style="font-size:14px;width:14px;height:14px">light_mode</mat-icon>
+                  <input type="range" min="50" max="200" [value]="brightnessLevel()" (input)="setBrightness($event)" style="width:70px; height:4px; accent-color:var(--color-primary); cursor:pointer">
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; color:rgba(255,255,255,.7)" title="Contraste">
+                  <mat-icon style="font-size:14px;width:14px;height:14px">contrast</mat-icon>
+                  <input type="range" min="50" max="200" [value]="contrastLevel()" (input)="setContrast($event)" style="width:70px; height:4px; accent-color:var(--color-primary); cursor:pointer">
+                </div>
               </div>
               <div class="toolbar-group">
                 <button class="tool-btn" id="btn-rotate"   title="Rotar" (click)="rotate()"><mat-icon>rotate_right</mat-icon></button>
@@ -96,7 +102,13 @@ import { Study, Image, Diagnosis } from '../../core/models/models';
             </div>
 
             <!-- Viewport -->
-            <div class="viewer-viewport" id="dicom-viewport">
+            <div class="viewer-viewport" id="dicom-viewport"
+                 (mousedown)="onMouseDown($event)"
+                 (mousemove)="onMouseMove($event)"
+                 (mouseup)="onMouseUp()"
+                 (mouseleave)="onMouseUp()"
+                 style="cursor: grab"
+                 [style.cursor]="isDragging ? 'grabbing' : 'grab'">
               <!-- Overlays -->
               <div class="overlay overlay-tl" *ngIf="study()">
                 <p>{{ study()!.patient_name }}</p>
@@ -115,8 +127,9 @@ import { Study, Image, Diagnosis } from '../../core/models/models';
               <!-- Central content: placeholder or real image -->
               @if (images().length > 0) {
                 <img [src]="images()[imageIndex()].preview_url || ('https://picsum.photos/seed/radiweb' + images()[imageIndex()].id + '/800/800?grayscale')"
-                     [style.transform]="'rotate(' + rotationDeg() + 'deg) scale(' + zoomLevel() + ')'"
-                     style="max-width:80%;max-height:80%;object-fit:contain;transition:transform .2s" alt="Imagen DICOM"/>
+                     [style.transform]="'translate(' + panX() + 'px, ' + panY() + 'px) rotate(' + rotationDeg() + 'deg) scale(' + zoomLevel() + ')'"
+                     [style.filter]="'brightness(' + brightnessLevel() + '%) contrast(' + contrastLevel() + '%)'"
+                     style="max-width:80%;max-height:80%;object-fit:contain;transition:transform 0.05s ease-out, filter 0.1s; pointer-events: none" alt="Imagen DICOM"/>
               } @else {
                 <!-- MRI visual placeholder (matches prototype) -->
                 <div class="mri-placeholder">
@@ -389,6 +402,10 @@ export class ViewerComponent implements OnInit {
   readonly imageIndex = signal(0);
   readonly zoomLevel  = signal(1);
   readonly rotationDeg = signal(0);
+  readonly brightnessLevel = signal(100);
+  readonly contrastLevel = signal(100);
+  readonly panX = signal(0);
+  readonly panY = signal(0);
   readonly diagLoading = signal(false);
   readonly diagSuccess = signal(false);
   readonly diagErrorMsg = signal('');
@@ -422,6 +439,46 @@ export class ViewerComponent implements OnInit {
   rotate(): void { this.rotationDeg.update(d => (d + 90) % 360); }
   prevImage(): void { this.imageIndex.update(i => Math.max(0, i - 1)); }
   nextImage(): void { this.imageIndex.update(i => Math.min(this.images().length - 1, i + 1)); }
+
+  setBrightness(e: Event): void {
+    const val = (e.target as HTMLInputElement).value;
+    this.brightnessLevel.set(parseInt(val, 10));
+  }
+
+  setContrast(e: Event): void {
+    const val = (e.target as HTMLInputElement).value;
+    this.contrastLevel.set(parseInt(val, 10));
+  }
+
+  isDragging = false;
+  startX = 0;
+  startY = 0;
+
+  onMouseDown(e: MouseEvent): void {
+    e.preventDefault(); // Evita drag nativo del navegador
+    this.isDragging = true;
+    this.startX = e.clientX - this.panX();
+    this.startY = e.clientY - this.panY();
+  }
+
+  onMouseMove(e: MouseEvent): void {
+    if (!this.isDragging) return;
+    this.panX.set(e.clientX - this.startX);
+    this.panY.set(e.clientY - this.startY);
+  }
+
+  onMouseUp(): void {
+    this.isDragging = false;
+  }
+
+  resetView(): void {
+    this.zoomLevel.set(1);
+    this.rotationDeg.set(0);
+    this.panX.set(0);
+    this.panY.set(0);
+    this.brightnessLevel.set(100);
+    this.contrastLevel.set(100);
+  }
 
   submitDiagnosis(): void {
     if (this.diagForm.invalid) { this.diagForm.markAllAsTouched(); return; }
