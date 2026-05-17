@@ -21,7 +21,9 @@ import { NotificationService } from '../../../core/services/notification.service
         <button
           id="btn-privacy-mode"
           (click)="privacyModeChange.emit(!privacyMode)"
-          style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;background:var(--color-surface-container);border:1px solid var(--color-outline-variant);cursor:pointer;font-size:11px;font-weight:700;color:var(--color-on-surface-variant);text-transform:uppercase;letter-spacing:.06em"
+          [style]="privacyMode
+            ? 'display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;background:#fff3e0;border:1px solid #ffb300;cursor:pointer;font-size:11px;font-weight:700;color:#e65100;text-transform:uppercase;letter-spacing:.06em;transition:all .2s'
+            : 'display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;background:var(--color-surface-container);border:1px solid var(--color-outline-variant);cursor:pointer;font-size:11px;font-weight:700;color:var(--color-on-surface-variant);text-transform:uppercase;letter-spacing:.06em;transition:all .2s'"
         >
           <mat-icon style="font-size:16px;width:16px;height:16px">{{ privacyMode ? 'visibility_off' : 'visibility' }}</mat-icon>
           Privacy Mode

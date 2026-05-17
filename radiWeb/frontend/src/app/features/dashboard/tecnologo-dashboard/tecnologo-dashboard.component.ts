@@ -79,7 +79,12 @@ import { StudyStats, Study, CreateStudyDto } from '../../../core/models/models';
                   @for (study of studies(); track study.id) {
                     <tr>
                       <td style="font-weight:700;font-size:12px;color:var(--color-on-surface-variant)">#{{ study.id }}</td>
-                      <td [class.hipaa-blur]="privacyMode">{{ study.patient_name }}</td>
+                      <td>
+                        <div class="privacy-cell" [class.blurred]="privacyMode" style="font-weight:600">{{ study.patient_name }}</div>
+                        @if (study.patient_dni) {
+                          <div class="privacy-cell" [class.blurred]="privacyMode" style="font-size:10px;opacity:.6">DNI: {{ study.patient_dni }}</div>
+                        }
+                      </td>
                       <td style="color:var(--color-on-surface-variant)">{{ study.study_type }}</td>
                       <td style="color:var(--color-on-surface-variant)">{{ study.body_area }}</td>
                       <td style="font-size:12px;color:var(--color-on-surface-variant)">{{ study.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
@@ -178,10 +183,24 @@ import { StudyStats, Study, CreateStudyDto } from '../../../core/models/models';
     .modal-backdrop { position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:center;justify-content:center; }
     .modal-dialog { background:var(--color-surface-container-lowest);border-radius:16px;width:100%;max-width:480px;box-shadow:var(--shadow-xl); }
     .panel-header { display:flex;justify-content:space-between;align-items:center; }
+
+    /* ── Privacy Mode: blur con hover-reveal ─────────── */
+    .privacy-cell {
+      transition: filter .2s ease;
+    }
+    .privacy-cell.blurred {
+      filter: blur(6px);
+      user-select: none;
+      cursor: pointer;
+    }
+    .privacy-cell.blurred:hover {
+      filter: blur(0);
+      transition: filter .15s ease;
+    }
   `]
 })
 export class TecnologoDashboardComponent implements OnInit {
-  protected privacyMode = false;
+  protected privacyMode = true;
   readonly loading = signal(true);
   readonly stats   = signal<StudyStats | null>(null);
   readonly studies = signal<Study[]>([]);
@@ -254,7 +273,7 @@ export class TecnologoDashboardComponent implements OnInit {
     if (this.studyForm.invalid || !this.editStudy()) return;
     this.formLoading.set(true);
     const dto = this.studyForm.getRawValue() as Partial<CreateStudyDto>;
-    
+
     this.api.updateStudy(this.editStudy()!.id, dto).subscribe({
       next: () => {
         this.formLoading.set(false);
@@ -273,7 +292,7 @@ export class TecnologoDashboardComponent implements OnInit {
       alert('Solo se pueden eliminar estudios en estado Pendiente.');
       return;
     }
-    
+
     if (confirm(`¿Está seguro que desea eliminar el estudio #${study.id} del paciente ${study.patient_name}? Esta acción no se puede deshacer.`)) {
       this.api.deleteStudy(study.id).subscribe({
         next: () => this.loadStudies(),

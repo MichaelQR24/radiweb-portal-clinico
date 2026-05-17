@@ -50,23 +50,31 @@ export async function getPatients(req: Request, res: Response): Promise<void> {
     }
 
     const offset = (page - 1) * limit;
-    const searchTerm = `%${search}%`;
 
-    const [rows] = await pool.query<RowDataPacket[][]>(`
+    // Obtener todos los pacientes y desencriptar en memoria para poder buscar
+    const [allRows] = await pool.query<RowDataPacket[]>(`
       SELECT p.*, u.name as created_by_name
       FROM Patients p
       LEFT JOIN Users u ON p.created_by = u.id
-      WHERE (? = '%%' OR p.full_name LIKE ? OR p.dni LIKE ?)
       ORDER BY p.created_at DESC
-      LIMIT ? OFFSET ?;
+    `);
 
-      SELECT COUNT(*) as total FROM Patients
-      WHERE (? = '%%' OR full_name LIKE ? OR dni LIKE ?);
-    `, [searchTerm, searchTerm, searchTerm, limit, offset, searchTerm, searchTerm, searchTerm]);
+    let decryptedPatients = (allRows as Record<string, unknown>[]).map(decryptPatient);
+
+    if (search) {
+      const searchLower = search.toLowerCase();
+      decryptedPatients = decryptedPatients.filter(p => 
+        (p['full_name'] as string).toLowerCase().includes(searchLower) ||
+        (p['dni'] as string).includes(searchLower)
+      );
+    }
+
+    const total = decryptedPatients.length;
+    const paginatedRecords = decryptedPatients.slice(offset, offset + limit);
 
     sendSuccess(res, {
-      records: (rows[0] as Record<string, unknown>[]).map(decryptPatient),
-      total: rows[1][0]?.total ?? 0,
+      records: paginatedRecords,
+      total: total,
       page, limit,
     }, 'Pacientes obtenidos');
   } catch (error) {
@@ -122,13 +130,17 @@ export async function createPatient(req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Verificar DNI duplicado (comparar contra el DNI cifrado en la BD)
-    const [checkRows] = await pool.execute<RowDataPacket[]>(
-      'SELECT id FROM Patients WHERE dni = ?',
-      [encrypt(dto.dni)]  // buscar el hash cifrado del mismo DNI
-    );
+    // Verificar DNI duplicado (desencriptando en memoria)
+    const [allPatients] = await pool.execute<RowDataPacket[]>('SELECT id, dni FROM Patients');
+    const isDuplicate = allPatients.some(p => {
+      try {
+        return decrypt(p['dni']) === dto.dni;
+      } catch {
+        return false;
+      }
+    });
 
-    if (checkRows.length > 0) {
+    if (isDuplicate) {
       sendError(res, 'Ya existe un paciente con ese número de DNI', 409);
       return;
     }

@@ -8,6 +8,13 @@ import { localDb } from '../utils/localDb';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { notifyRole } from '../services/notification.service';
 import { logger } from '../utils/logger';
+import { decrypt } from '../utils/encryption.util';
+
+function decryptStudyPatient(row: Record<string, unknown>): Record<string, unknown> {
+  if (row['patient_name']) row['patient_name'] = decrypt(row['patient_name'] as string);
+  if (row['patient_dni']) row['patient_dni'] = decrypt(row['patient_dni'] as string);
+  return row;
+}
 
 /**
  * GET /api/studies
@@ -43,7 +50,7 @@ export async function getStudies(req: Request, res: Response): Promise<void> {
     `, [status, status, limit, offset, status, status]);
 
     sendSuccess(res, {
-      records: rows[0],
+      records: (rows[0] as Record<string, unknown>[]).map(decryptStudyPatient),
       total: rows[1][0]?.total ?? 0,
       page, limit,
     }, 'Estudios obtenidos');
@@ -109,7 +116,7 @@ export async function getStudyById(req: Request, res: Response): Promise<void> {
       `, [id]);
 
     if (rows.length === 0) { sendError(res, 'Estudio no encontrado', 404); return; }
-    sendSuccess(res, rows[0], 'Estudio obtenido');
+    sendSuccess(res, decryptStudyPatient(rows[0] as Record<string, unknown>), 'Estudio obtenido');
   } catch {
     sendError(res, 'Error obteniendo estudio', 500);
   }
