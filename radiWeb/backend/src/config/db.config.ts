@@ -60,4 +60,3 @@ export async function closePool(): Promise<void> {
   }
 }
 
-export { mysql };

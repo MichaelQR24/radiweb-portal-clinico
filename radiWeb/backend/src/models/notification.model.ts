@@ -5,8 +5,3 @@ export interface Notification {
   is_read: boolean;
   created_at: string;
 }
-
-export interface CreateNotificationDto {
-  user_id: number;
-  message: string;
-}

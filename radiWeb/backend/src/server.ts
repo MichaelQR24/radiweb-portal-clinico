@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 
 import { logger } from './utils/logger';
 import { errorMiddleware } from './middlewares/error.middleware';
+import { closePool } from './config/db.config';
 
 import authRoutes from './routes/auth.routes';
 import patientRoutes from './routes/patient.routes';
@@ -97,8 +98,9 @@ app.listen(PORT, () => {
 });
 
 // ─── Manejo de cierre limpio ─────────────────────────────────
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   logger.info('Señal SIGTERM recibida – cerrando servidor...');
+  await closePool();
   process.exit(0);
 });
 

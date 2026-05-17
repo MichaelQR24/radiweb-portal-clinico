@@ -6,6 +6,7 @@ import { logAction } from '../services/audit.service';
 import { CreateUserDto, UpdateUserDto } from '../models/user.model';
 import { DEFAULT_PAGE, DEFAULT_LIMIT } from '../utils/constants';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { logger } from '../utils/logger';
 
 import { localDb } from '../utils/localDb';
 
@@ -47,7 +48,7 @@ export async function getUsers(req: Request, res: Response): Promise<void> {
       page, limit,
     }, 'Usuarios obtenidos');
   } catch (error) {
-    console.error(error);
+    logger.error('Error en getUsers:', error);
     sendError(res, 'Error obteniendo usuarios', 500);
   }
 }

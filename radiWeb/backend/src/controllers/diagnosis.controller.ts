@@ -4,6 +4,7 @@ import { sendSuccess, sendError } from '../utils/responseHelper';
 import { logAction } from '../services/audit.service';
 import { CreateDiagnosisDto, UpdateDiagnosisDto } from '../models/diagnosis.model';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { logger } from '../utils/logger';
 
 import { localDb } from '../utils/localDb';
 import { createNotification } from '../services/notification.service';
@@ -89,7 +90,7 @@ export async function createDiagnosis(req: Request, res: Response): Promise<void
       connection.release();
     }
   } catch (error) {
-    console.error(error);
+    logger.error('Error en createDiagnosis:', error);
     sendError(res, 'Error creando diagnóstico', 500);
   }
 }

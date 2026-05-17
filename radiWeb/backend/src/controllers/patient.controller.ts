@@ -8,6 +8,7 @@ import { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 import { localDb } from '../utils/localDb';
 import { encrypt, decrypt } from '../utils/encryption.util';
+import { logger } from '../utils/logger';
 
 /**
  * Descifra los campos sensibles de una fila de la BD antes de enviarla al frontend.
@@ -69,7 +70,7 @@ export async function getPatients(req: Request, res: Response): Promise<void> {
       page, limit,
     }, 'Pacientes obtenidos');
   } catch (error) {
-    console.error(error);
+    logger.error('Error en getPatients:', error);
     sendError(res, 'Error obteniendo pacientes', 500);
   }
 }

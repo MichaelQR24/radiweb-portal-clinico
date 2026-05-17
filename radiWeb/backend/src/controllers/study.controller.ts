@@ -7,6 +7,7 @@ import { DEFAULT_PAGE, DEFAULT_LIMIT } from '../utils/constants';
 import { localDb } from '../utils/localDb';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { notifyRole } from '../services/notification.service';
+import { logger } from '../utils/logger';
 
 /**
  * GET /api/studies
@@ -47,7 +48,7 @@ export async function getStudies(req: Request, res: Response): Promise<void> {
       page, limit,
     }, 'Estudios obtenidos');
   } catch (error) {
-    console.error(error);
+    logger.error('Error en getStudies:', error);
     sendError(res, 'Error obteniendo estudios', 500);
   }
 }

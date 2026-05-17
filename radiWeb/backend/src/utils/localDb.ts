@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { logger } from './logger';
 
 const DB_FILE = path.join(__dirname, '../../data/db.json');
 
@@ -53,7 +54,7 @@ function readDb(): DbSchema {
     
     return parsed;
   } catch (e) {
-    console.error('Error reading local DB, returning default', e);
+    logger.error('Error leyendo base de datos local, usando defaults:', e);
     return DEFAULT_DB;
   }
 }

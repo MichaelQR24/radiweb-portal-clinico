@@ -69,10 +69,4 @@ export async function deleteBlob(containerName: string, blobName: string): Promi
   logger.info(`Blob eliminado: ${blobName}`);
 }
 
-/**
- * Genera una URL SAS temporal para acceder a un blob.
- */
-export function getSecureUrl(containerName: string, blobName: string): string | null {
-  const expiryHours = parseInt(process.env['AZURE_SAS_EXPIRY_HOURS'] ?? '2', 10);
-  return generateSasUrl(containerName, blobName, expiryHours);
-}
+
