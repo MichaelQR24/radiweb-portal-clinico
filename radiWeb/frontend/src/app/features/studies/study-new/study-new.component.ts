@@ -8,11 +8,12 @@ import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { Patient } from '../../../core/models/models';
 
 @Component({
     selector: 'app-study-new',
-    imports: [CommonModule, ReactiveFormsModule, MatIconModule, SidebarComponent, NavbarComponent],
+    imports: [CommonModule, ReactiveFormsModule, MatIconModule, MatFormFieldModule, SidebarComponent, NavbarComponent],
     template: `
     <div class="rw-layout">
       <app-sidebar />
@@ -74,14 +75,23 @@ import { Patient } from '../../../core/models/models';
                         <div class="rw-form-field">
                           <label for="full_name">Nombre Completo</label>
                           <input id="full_name" formControlName="full_name" class="rw-input" placeholder="Ej. Juan Pérez García"/>
+                          <mat-error *ngIf="patientForm.get('full_name')?.touched && patientForm.get('full_name')?.invalid">
+                            El nombre solo puede contener letras y espacios
+                          </mat-error>
                         </div>
                         <div class="rw-form-field">
                           <label for="dni">DNI</label>
-                          <input id="dni" formControlName="dni" class="rw-input" placeholder="12345678" maxlength="8"/>
+                          <input id="dni" formControlName="dni" class="rw-input" placeholder="12345678" maxlength="8" (keypress)="$event.charCode >= 48 && $event.charCode <= 57"/>
+                          <mat-error *ngIf="patientForm.get('dni')?.touched && patientForm.get('dni')?.invalid">
+                            El DNI debe tener exactamente 8 dígitos numéricos
+                          </mat-error>
                         </div>
                         <div class="rw-form-field">
                           <label for="age">Edad</label>
                           <input id="age" formControlName="age" class="rw-input" type="number" min="0" max="150"/>
+                          <mat-error *ngIf="patientForm.get('age')?.touched && patientForm.get('age')?.invalid">
+                            La edad debe ser un número entre 0 y 150
+                          </mat-error>
                         </div>
                         <div class="rw-form-field">
                           <label for="gender">Género</label>
@@ -91,6 +101,9 @@ import { Patient } from '../../../core/models/models';
                             <option value="F">Femenino</option>
                             <option value="O">Otro</option>
                           </select>
+                          <mat-error *ngIf="patientForm.get('gender')?.touched && patientForm.get('gender')?.invalid">
+                            Seleccione un género
+                          </mat-error>
                         </div>
                       </div>
                     </div>
@@ -195,7 +208,7 @@ import { Patient } from '../../../core/models/models';
                       Siguiente <mat-icon>chevron_right</mat-icon>
                     </button>
                   } @else {
-                    <button class="rw-btn rw-btn--primary" id="btn-submit" (click)="submit()" [disabled]="loading()">
+                    <button class="rw-btn rw-btn--primary" id="btn-submit" (click)="submit()" [disabled]="loading() || (!foundPatient() && patientForm.invalid) || studyForm.invalid">
                       @if (loading()) { <span class="rw-spinner" style="width:16px;height:16px;border-width:2px"></span> }
                       @else { <mat-icon>save</mat-icon> }
                       Completar Registro
@@ -225,6 +238,13 @@ import { Patient } from '../../../core/models/models';
         background: rgba(0,77,153,.03);
       }
     }
+    mat-error {
+      color: var(--color-error, #ba1a1a);
+      font-size: 11px;
+      font-weight: 500;
+      margin-top: 4px;
+      display: block;
+    }
   `]
 })
 export class StudyNewComponent {
@@ -241,10 +261,22 @@ export class StudyNewComponent {
   readonly studyTypes = ['Resonancia Magnética (MRI)', 'Tomografía Computarizada (CT)', 'Rayos X', 'Ecografía', 'Mamografía', 'Densitometría Ósea'];
 
   readonly patientForm = this.fb.nonNullable.group({
-    full_name: ['', Validators.required],
-    dni:       ['', [Validators.required, Validators.pattern(/^\d{8}$/)]],
-    age:       [0,  [Validators.required, Validators.min(0)]],
-    gender:    ['', Validators.required],
+    full_name: ['', [
+      Validators.required,
+      Validators.minLength(3),
+      Validators.maxLength(150),
+      Validators.pattern(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/)
+    ]],
+    dni: ['', [
+      Validators.required,
+      Validators.pattern(/^\d{8}$/)
+    ]],
+    age: [0, [
+      Validators.required,
+      Validators.min(0),
+      Validators.max(150)
+    ]],
+    gender: ['', Validators.required],
   });
 
   readonly studyForm = this.fb.nonNullable.group({

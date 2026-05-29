@@ -34,7 +34,7 @@ export const routes: Routes = [
   {
     path: 'viewer/:studyId',
     canActivate: [authGuard, roleGuard],
-    data: { roles: ['radiologo', 'admin'] },
+    data: { roles: ['tecnologo', 'radiologo', 'admin'] },
     loadComponent: () => import('./features/viewer/viewer.component').then(m => m.ViewerComponent),
   },
   {
