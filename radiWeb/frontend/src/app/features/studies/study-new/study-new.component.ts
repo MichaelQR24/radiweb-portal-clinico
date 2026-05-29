@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
+import { lastValueFrom } from 'rxjs';
 import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiService } from '../../../core/services/api.service';
@@ -309,7 +310,7 @@ export class StudyNewComponent {
     const patient = this.foundPatient();
     const createPatient$ = patient
       ? new Promise<Patient>(resolve => resolve(patient))
-      : this.api.createPatient(this.patientForm.getRawValue() as any).toPromise().then(r => r!.data!);
+      : lastValueFrom(this.api.createPatient(this.patientForm.getRawValue() as any)).then(r => r.data!);
 
     createPatient$.then(p => {
       const studyDto = { patient_id: p.id, ...this.studyForm.getRawValue() };

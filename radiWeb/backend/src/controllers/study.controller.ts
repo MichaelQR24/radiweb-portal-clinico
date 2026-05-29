@@ -197,6 +197,44 @@ export async function updateStudyStatus(req: Request, res: Response): Promise<vo
     );
     
     await logAction(userId, `UPDATE_STUDY_STATUS_${status.toUpperCase()}`, 'Study', id, req.ip ?? '');
+
+    // SEPARADO — la generación de notificaciones no debe bloquear ni romper el flujo principal
+    try {
+      if (status === 'enviado') {
+        console.log('[Notifications] Creando notificación para estudio:', id);
+        let patientName = '';
+        let studyType = '';
+        const pool = await getPool();
+
+        if (!pool) {
+          const study = localDb.studies.find(s => s.id === id);
+          patientName = study ? study.patient_name : 'Paciente';
+          studyType = study ? study.study_type : 'Estudio';
+        } else {
+          const [infoRows] = await pool.execute<RowDataPacket[]>(`
+            SELECT s.study_type, p.full_name as patient_name
+            FROM Studies s
+            LEFT JOIN Patients p ON s.patient_id = p.id
+            WHERE s.id = ?
+          `, [id]);
+          if (infoRows.length > 0) {
+            try {
+              patientName = decrypt(infoRows[0].patient_name);
+            } catch (decErr: any) {
+              console.warn('[Notifications] Error decodificando nombre de paciente para notificación:', decErr?.message || decErr);
+              patientName = infoRows[0].patient_name;
+            }
+            studyType = infoRows[0].study_type;
+          }
+        }
+        const notifMsg = `Nuevo estudio de ${studyType} para ${patientName} enviado a diagnóstico.`;
+        await notifyRole('radiologo', notifMsg, id);
+        console.log('[Notifications] Notificación creada con éxito para estudio:', id);
+      }
+    } catch (notifErr) {
+      console.error('[Notifications] Error al crear notificación:', notifErr);
+    }
+
     sendSuccess(res, studyRows[0], 'Estado actualizado');
   } catch {
     sendError(res, 'Error actualizando estado del estudio', 500);

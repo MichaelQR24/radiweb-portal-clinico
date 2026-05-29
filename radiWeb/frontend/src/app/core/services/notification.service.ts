@@ -11,7 +11,7 @@ export class NotificationService implements OnDestroy {
   readonly notifications = signal<Notification[]>([]);
 
   /** Cantidad de no leídas como computed para el badge */
-  readonly unreadCount = computed(() => this.notifications().length);
+  readonly unreadCount = computed(() => this.notifications().filter((n) => !n.is_read).length);
 
   private pollingTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -22,6 +22,9 @@ export class NotificationService implements OnDestroy {
    * Llamar desde el componente principal al iniciar sesión.
    */
   startPolling(): void {
+    if (this.pollingTimer !== null) {
+      clearInterval(this.pollingTimer);
+    }
     this.fetchNotifications(); // Primera carga inmediata
     this.pollingTimer = setInterval(() => this.fetchNotifications(), 60_000);
   }
@@ -49,12 +52,26 @@ export class NotificationService implements OnDestroy {
     });
   }
 
-  /** Marca una notificación como leída y la elimina del signal local. */
+  /** Marca una notificación como leída de forma optimista. */
   markAsRead(id: number): void {
     this.http.patch<ApiResponse<{ id: number }>>(`${this.base}/${id}/read`, {}).subscribe({
       next: () => {
-        // Optimistic update: quitar del array sin esperar otro poll
-        this.notifications.update((list) => list.filter((n) => n.id !== id));
+        // Optimistic update: marcar como leída sin eliminar del listado
+        this.notifications.update((list) =>
+          list.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+        );
+      },
+    });
+  }
+
+  /** Marca todas las notificaciones como leídas de forma optimista. */
+  markAllAsRead(): void {
+    this.http.patch<ApiResponse<null>>(`${this.base}/read-all`, {}).subscribe({
+      next: () => {
+        // Optimistic update: marcar todas como leídas
+        this.notifications.update((list) =>
+          list.map((n) => ({ ...n, is_read: true }))
+        );
       },
     });
   }

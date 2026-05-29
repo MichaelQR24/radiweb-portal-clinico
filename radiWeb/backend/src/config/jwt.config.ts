@@ -14,6 +14,13 @@ const JWT_EXPIRES_IN = process.env['JWT_EXPIRES_IN'] ?? '8h';
 const JWT_REFRESH_SECRET = process.env['JWT_REFRESH_SECRET'] ?? 'dev_refresh_secret_change_in_production';
 const JWT_REFRESH_EXPIRES_IN = process.env['JWT_REFRESH_EXPIRES_IN'] ?? '7d';
 
+if (process.env['NODE_ENV'] === 'production') {
+  if (JWT_SECRET === 'dev_secret_change_in_production_min_256_bits' || 
+      JWT_REFRESH_SECRET === 'dev_refresh_secret_change_in_production') {
+    throw new Error('FATAL: Las variables de entorno JWT_SECRET y JWT_REFRESH_SECRET son obligatorias en producción.');
+  }
+}
+
 /**
  * Genera un token JWT de acceso para el usuario autenticado.
  */

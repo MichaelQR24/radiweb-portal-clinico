@@ -23,15 +23,17 @@ CREATE TABLE IF NOT EXISTS Users (
 
 -- ─── Tabla: Patients ─────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS Patients (
-  id          INT           AUTO_INCREMENT PRIMARY KEY,
-  full_name   VARCHAR(150)  NOT NULL,
-  dni         VARCHAR(8)    NOT NULL UNIQUE,
-  age         INT           NOT NULL CHECK (age >= 0 AND age <= 150),
-  gender      ENUM('M', 'F', 'O') NOT NULL,
-  created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  created_by  INT           NOT NULL,
+  id              INT           AUTO_INCREMENT PRIMARY KEY,
+  full_name       VARCHAR(500)  NOT NULL,
+  dni             VARCHAR(128)  NOT NULL UNIQUE,
+  dni_blind_index CHAR(64)      NOT NULL UNIQUE,
+  age             INT           NOT NULL CHECK (age >= 0 AND age <= 150),
+  gender          ENUM('M', 'F', 'O') NOT NULL,
+  created_at      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by      INT           NOT NULL,
   FOREIGN KEY (created_by) REFERENCES Users(id),
   INDEX IX_Patients_dni (dni),
+  INDEX IX_Patients_dni_blind_index (dni_blind_index),
   INDEX IX_Patients_full_name (full_name)
 );
 
@@ -98,6 +100,20 @@ CREATE TABLE IF NOT EXISTS AuditLogs (
   INDEX IX_AuditLogs_user_id (user_id),
   INDEX IX_AuditLogs_timestamp (timestamp),
   INDEX IX_AuditLogs_entity (entity)
+);
+
+-- ─── Tabla: Notifications ─────────────────────────────────────
+CREATE TABLE IF NOT EXISTS Notifications (
+  id          INT           AUTO_INCREMENT PRIMARY KEY,
+  user_id     INT           NOT NULL,
+  message     VARCHAR(500)  NOT NULL,
+  study_id    INT           NULL,
+  is_read     TINYINT(1)    NOT NULL DEFAULT 0,
+  created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES Users(id),
+  FOREIGN KEY (study_id) REFERENCES Studies(id) ON DELETE CASCADE,
+  INDEX IX_Notifications_user_id (user_id),
+  INDEX IX_Notifications_is_read (is_read)
 );
 
 -- ─── Usuario administrador inicial ───────────────────────────

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middlewares/auth.middleware';
-import { getMyNotifications, markAsRead } from '../controllers/notification.controller';
+import { getMyNotifications, markAsRead, markAllAsRead } from '../controllers/notification.controller';
 
 const router = Router();
 
@@ -9,9 +9,15 @@ router.use(authMiddleware);
 
 /**
  * GET /api/notifications
- * Devuelve las notificaciones no leídas del usuario logueado.
+ * Devuelve las notificaciones del usuario logueado.
  */
 router.get('/', getMyNotifications);
+
+/**
+ * PATCH /api/notifications/read-all
+ * Marca todas las notificaciones del usuario como leídas.
+ */
+router.patch('/read-all', markAllAsRead);
 
 /**
  * PATCH /api/notifications/:id/read

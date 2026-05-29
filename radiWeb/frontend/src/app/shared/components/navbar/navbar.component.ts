@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
@@ -54,18 +55,27 @@ import { NotificationService } from '../../../core/services/notification.service
                 </div>
               } @else {
                 <ul class="notif-list">
-                  @for (n of notifSvc.notifications(); track n.id) {
-                    <li class="notif-item" (click)="readAndClose(n.id)">
-                      <div class="notif-dot"></div>
+                  @for (n of notifSvc.notifications().slice(0, 5); track n.id) {
+                    <li class="notif-item" [class.unread]="!n.is_read" (click)="readAndClose(n)">
+                      <div class="notif-dot-wrapper">
+                        @if (!n.is_read) { <div class="notif-dot"></div> }
+                      </div>
                       <div class="notif-content">
                         <p class="notif-msg">{{ n.message }}</p>
-                        <span class="notif-time">{{ n.created_at | date:'dd/MM HH:mm' }}</span>
+                        <span class="notif-time" [title]="n.created_at | date:'dd/MM/yyyy HH:mm'">
+                          {{ getRelativeTime(n.created_at) }}
+                        </span>
                       </div>
-                      <mat-icon class="notif-check" title="Marcar como leída">check_circle</mat-icon>
                     </li>
                   }
                 </ul>
               }
+
+              <div class="notif-footer">
+                <button class="notif-footer-btn" (click)="goToAllNotifications()">
+                  Ver todas las notificaciones
+                </button>
+              </div>
             </div>
           }
         </div>
@@ -96,7 +106,7 @@ import { NotificationService } from '../../../core/services/notification.service
         </div>
       </div>
     </header>
-  `,
+    `,
     styles: [`
     .notif-wrapper { position: relative; }
     .notif-bell {
@@ -153,18 +163,35 @@ import { NotificationService } from '../../../core/services/notification.service
       transition: background .12s;
       &:last-child { border-bottom: none; }
       &:hover { background: var(--color-surface-container-low); }
-      &:hover .notif-check { opacity: 1; }
+    }
+    .notif-item.unread {
+      background: rgba(0, 77, 153, 0.04);
+      border-left: 3px solid var(--color-primary);
+      padding-left: 13px; /* Compensa el borde */
+    }
+    .notif-dot-wrapper {
+      width: 8px; height: 8px; flex-shrink: 0; margin-top: 5px;
     }
     .notif-dot {
       width: 8px; height: 8px; border-radius: 50%;
-      background: var(--color-primary); flex-shrink: 0; margin-top: 5px;
+      background: var(--color-primary);
     }
     .notif-content { flex: 1; display: flex; flex-direction: column; gap: 3px; }
     .notif-msg { margin: 0; font-size: 12px; color: var(--color-on-surface); line-height: 1.4; }
-    .notif-time { font-size: 10px; color: var(--color-on-surface-variant); opacity: .6; }
-    .notif-check {
-      font-size: 18px; width: 18px; height: 18px;
-      color: var(--color-primary); opacity: 0; transition: opacity .15s; flex-shrink: 0;
+    .notif-time { font-size: 10px; color: var(--color-on-surface-variant); opacity: .6; display: inline-block; cursor: help; }
+    
+    .notif-footer {
+      padding: 8px 16px;
+      border-top: 1px solid var(--color-outline-variant);
+      background: var(--color-surface-container-low);
+      text-align: center;
+    }
+    .notif-footer-btn {
+      background: none; border: none;
+      color: var(--color-primary); font-size: 12px; font-weight: 700;
+      cursor: pointer; padding: 4px 8px; width: 100%;
+      transition: opacity .15s;
+      &:hover { opacity: 0.8; }
     }
   `]
 })
@@ -178,17 +205,40 @@ export class NavbarComponent {
   constructor(
     readonly auth: AuthService,
     readonly notifSvc: NotificationService,
+    private readonly router: Router,
   ) {}
 
   toggleDropdown(): void {
     this.dropdownOpen.update((v) => !v);
   }
 
-  readAndClose(id: number): void {
-    this.notifSvc.markAsRead(id);
+  readAndClose(n: any): void {
+    this.notifSvc.markAsRead(n.id);
     if (this.notifSvc.unreadCount() <= 1) {
       this.dropdownOpen.set(false);
     }
+    if (n.study_id) {
+      void this.router.navigate(['/viewer', n.study_id]);
+    }
+  }
+
+  goToAllNotifications(): void {
+    this.dropdownOpen.set(false);
+    void this.router.navigate(['/notificaciones']);
+  }
+
+  getRelativeTime(dateStr: string): string {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60_000);
+
+    if (diffMins < 1) return 'hace un momento';
+    if (diffMins < 60) return `hace ${diffMins} min`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `hace ${diffHours} h`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `hace ${diffDays} d`;
   }
 
   /** Cierra el dropdown al hacer click fuera del componente */

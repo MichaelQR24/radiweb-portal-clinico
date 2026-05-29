@@ -135,7 +135,9 @@ export interface Notification {
   id: number;
   user_id: number;
   message: string;
-  is_read: boolean;
+  is_read: boolean | number;
   created_at: string;
+  study_id?: number | null;
+  recipient_name?: string;
 }
 

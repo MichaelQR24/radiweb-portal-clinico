@@ -23,12 +23,7 @@ export class AuthService {
     private readonly http: HttpClient,
     private readonly router: Router,
     private readonly notifSvc: NotificationService,
-  ) {
-    // Si ya hay sesión activa (recarga de página), arrancar el polling
-    if (this.isLoggedIn()) {
-      this.notifSvc.startPolling();
-    }
-  }
+  ) {}
 
   /**
    * Realiza el login y guarda el token JWT en localStorage.
@@ -49,10 +44,15 @@ export class AuthService {
    * Cierra sesión y redirige al login.
    */
   logout(): void {
-    this.clearSession();
     this.http.post(`${environment.apiUrl}/auth/logout`, {}).subscribe({
-      next: () => void this.router.navigate(['/login']),
-      error: () => void this.router.navigate(['/login'])
+      next: () => {
+        this.clearSession();
+        void this.router.navigate(['/login']);
+      },
+      error: () => {
+        this.clearSession();
+        void this.router.navigate(['/login']);
+      }
     });
   }
 

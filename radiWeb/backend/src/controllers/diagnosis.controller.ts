@@ -8,6 +8,7 @@ import { logger } from '../utils/logger';
 
 import { localDb } from '../utils/localDb';
 import { createNotification } from '../services/notification.service';
+import { decrypt } from '../utils/encryption.util';
 
 /**
  * POST /api/diagnoses
@@ -63,15 +64,26 @@ export async function createDiagnosis(req: Request, res: Response): Promise<void
 
       await connection.commit();
 
-      // Notificar al tecnólogo que creó el estudio
-      const [studyInfo] = await pool.execute<RowDataPacket[]>(
-        'SELECT created_by FROM Studies WHERE id = ?',
-        [dto.study_id]
-      );
+      // Notificar al tecnólogo que creó el estudio con información detallada
+      const [studyInfo] = await pool.execute<RowDataPacket[]>(`
+        SELECT s.created_by, s.study_type, p.full_name as patient_name
+        FROM Studies s
+        LEFT JOIN Patients p ON s.patient_id = p.id
+        WHERE s.id = ?
+      `, [dto.study_id]);
+
       if (studyInfo.length > 0) {
+        let patientName = '';
+        try {
+          patientName = decrypt(studyInfo[0].patient_name);
+        } catch {
+          patientName = studyInfo[0].patient_name;
+        }
+        const studyType = studyInfo[0].study_type;
         await createNotification(
           studyInfo[0].created_by,
-          `El diagnóstico del estudio #${dto.study_id} ya está disponible.`
+          `El estudio de ${studyType} del paciente ${patientName} ha sido diagnosticado.`,
+          dto.study_id
         );
       }
 

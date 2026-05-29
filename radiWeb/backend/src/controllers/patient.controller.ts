@@ -5,6 +5,7 @@ import { logAction } from '../services/audit.service';
 import { CreatePatientDto, UpdatePatientDto } from '../models/patient.model';
 import { DEFAULT_PAGE, DEFAULT_LIMIT } from '../utils/constants';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { createHmac } from 'crypto';
 
 import { localDb } from '../utils/localDb';
 import { encrypt, decrypt } from '../utils/encryption.util';
@@ -51,30 +52,64 @@ export async function getPatients(req: Request, res: Response): Promise<void> {
 
     const offset = (page - 1) * limit;
 
-    // Obtener todos los pacientes y desencriptar en memoria para poder buscar
-    const [allRows] = await pool.query<RowDataPacket[]>(`
-      SELECT p.*, u.name as created_by_name
-      FROM Patients p
-      LEFT JOIN Users u ON p.created_by = u.id
-      ORDER BY p.created_at DESC
-    `);
+    // Determinar si es una búsqueda de DNI exacto (8 dígitos)
+    const isExactDni = /^\d{8}$/.test(search);
 
-    let decryptedPatients = (allRows as Record<string, unknown>[]).map(decryptPatient);
+    let rows: RowDataPacket[];
+    let total = 0;
 
-    if (search) {
+    if (isExactDni) {
+      // Búsqueda súper optimizada usando Blind Index indexado en la DB
+      const ENCRYPTION_KEY = process.env['ENCRYPTION_KEY'] ?? 'dev_secret_key';
+      const dniBlindIndex = createHmac('sha256', ENCRYPTION_KEY).update(search).digest('hex');
+
+      const [dataRows] = await pool.execute<RowDataPacket[]>(`
+        SELECT p.*, u.name as created_by_name
+        FROM Patients p
+        LEFT JOIN Users u ON p.created_by = u.id
+        WHERE p.dni_blind_index = ?
+      `, [dniBlindIndex]);
+
+      rows = dataRows;
+      total = dataRows.length;
+    } else if (search) {
+      // Búsqueda parcial por nombre completo (requiere descifrado en memoria debido a encriptación AES)
+      const [allRows] = await pool.query<RowDataPacket[]>(`
+        SELECT p.*, u.name as created_by_name
+        FROM Patients p
+        LEFT JOIN Users u ON p.created_by = u.id
+        ORDER BY p.created_at DESC
+      `);
+
+      let decryptedPatients = (allRows as Record<string, unknown>[]).map(decryptPatient);
       const searchLower = search.toLowerCase();
       decryptedPatients = decryptedPatients.filter(p => 
-        (p['full_name'] as string).toLowerCase().includes(searchLower) ||
-        (p['dni'] as string).includes(searchLower)
+        (p['full_name'] as string).toLowerCase().includes(searchLower)
       );
+
+      total = decryptedPatients.length;
+      rows = decryptedPatients.slice(offset, offset + limit) as RowDataPacket[];
+    } else {
+      // Paginación directa y limpia a nivel SQL sin búsquedas (¡super eficiente y escalable!)
+      const [dataRows] = await pool.execute<RowDataPacket[]>(`
+        SELECT p.*, u.name as created_by_name
+        FROM Patients p
+        LEFT JOIN Users u ON p.created_by = u.id
+        ORDER BY p.created_at DESC
+        LIMIT ? OFFSET ?
+      `, [limit, offset]);
+
+      const [countRows] = await pool.execute<RowDataPacket[]>(`
+        SELECT COUNT(*) as total FROM Patients
+      `);
+
+      rows = dataRows;
+      total = countRows[0]?.total ?? 0;
     }
 
-    const total = decryptedPatients.length;
-    const paginatedRecords = decryptedPatients.slice(offset, offset + limit);
-
     sendSuccess(res, {
-      records: paginatedRecords,
-      total: total,
+      records: rows.map(row => decryptPatient(row as Record<string, unknown>)),
+      total,
       page, limit,
     }, 'Pacientes obtenidos');
   } catch (error) {
@@ -130,26 +165,25 @@ export async function createPatient(req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Verificar DNI duplicado (desencriptando en memoria)
-    const [allPatients] = await pool.execute<RowDataPacket[]>('SELECT id, dni FROM Patients');
-    const isDuplicate = allPatients.some(p => {
-      try {
-        return decrypt(p['dni']) === dto.dni;
-      } catch {
-        return false;
-      }
-    });
+    const ENCRYPTION_KEY = process.env['ENCRYPTION_KEY'] ?? 'dev_secret_key';
+    const dniBlindIndex = createHmac('sha256', ENCRYPTION_KEY).update(dto.dni).digest('hex');
 
-    if (isDuplicate) {
+    // Verificar DNI duplicado mediante Blind Index en la base de datos (¡super eficiente!)
+    const [existing] = await pool.execute<RowDataPacket[]>(
+      'SELECT id FROM Patients WHERE dni_blind_index = ?',
+      [dniBlindIndex]
+    );
+
+    if (existing.length > 0) {
       sendError(res, 'Ya existe un paciente con ese número de DNI', 409);
       return;
     }
 
-    // Cifrar campos sensibles antes de persistir en MySQL
+    // Cifrar campos sensibles e incluir Blind Index antes de persistir en MySQL
     const [result] = await pool.execute<ResultSetHeader>(`
-      INSERT INTO Patients (full_name, dni, age, gender, created_by, created_at)
-      VALUES (?, ?, ?, ?, ?, NOW())
-    `, [encrypt(dto.full_name), encrypt(dto.dni), dto.age, dto.gender, userId]);
+      INSERT INTO Patients (full_name, dni, dni_blind_index, age, gender, created_by, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, NOW())
+    `, [encrypt(dto.full_name), encrypt(dto.dni), dniBlindIndex, dto.age, dto.gender, userId]);
 
     const [patientRows] = await pool.execute<RowDataPacket[]>(
       'SELECT * FROM Patients WHERE id = ?',

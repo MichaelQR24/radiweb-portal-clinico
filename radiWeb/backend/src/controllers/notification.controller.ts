@@ -1,65 +1,61 @@
 import { Request, Response } from 'express';
-import { getPool } from '../config/db.config';
 import { sendSuccess, sendError } from '../utils/responseHelper';
-import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import {
+  getNotificationsForUser,
+  markAsRead as serviceMarkAsRead,
+  markAllAsRead as serviceMarkAllAsRead,
+} from '../services/notification.service';
 
 /**
  * GET /api/notifications
- * Devuelve todas las notificaciones NO leídas del usuario autenticado.
+ * Devuelve las notificaciones del usuario autenticado (todas si es admin).
  */
 export async function getMyNotifications(req: Request, res: Response): Promise<void> {
   try {
     const userId = req.user!.userId;
-    const pool = await getPool();
+    const role = req.user!.role;
 
-    if (!pool) {
-      // Modo mock: devuelve array vacío
-      sendSuccess(res, [], 'Notificaciones obtenidas');
-      return;
-    }
-
-    const [rows] = await pool.execute<RowDataPacket[]>(
-      `SELECT id, message, is_read, created_at
-       FROM Notifications
-       WHERE user_id = ? AND is_read = FALSE
-       ORDER BY created_at DESC
-       LIMIT 50`,
-      [userId]
-    );
-
-    sendSuccess(res, rows, 'Notificaciones obtenidas');
-  } catch {
+    const notifications = await getNotificationsForUser(userId, role);
+    sendSuccess(res, notifications, 'Notificaciones obtenidas');
+  } catch (error) {
     sendError(res, 'Error obteniendo notificaciones', 500);
   }
 }
 
 /**
  * PATCH /api/notifications/:id/read
- * Marca una notificación como leída. Solo el dueño puede hacerlo.
+ * Marca una notificación como leída.
  */
 export async function markAsRead(req: Request, res: Response): Promise<void> {
   try {
     const id = parseInt(req.params['id'] ?? '0', 10);
     const userId = req.user!.userId;
-    const pool = await getPool();
+    const role = req.user!.role;
 
-    if (!pool) {
-      sendSuccess(res, { id }, 'Notificación marcada como leída (mock)');
-      return;
-    }
-
-    const [result] = await pool.execute<ResultSetHeader>(
-      'UPDATE Notifications SET is_read = TRUE WHERE id = ? AND user_id = ?',
-      [id, userId]
-    );
-
-    if (result.affectedRows === 0) {
+    const success = await serviceMarkAsRead(id, userId, role);
+    if (!success) {
       sendError(res, 'Notificación no encontrada o sin permisos', 404);
       return;
     }
 
     sendSuccess(res, { id }, 'Notificación marcada como leída');
-  } catch {
+  } catch (error) {
     sendError(res, 'Error actualizando notificación', 500);
+  }
+}
+
+/**
+ * PATCH /api/notifications/read-all
+ * Marca todas las notificaciones como leídas.
+ */
+export async function markAllAsRead(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = req.user!.userId;
+    const role = req.user!.role;
+
+    await serviceMarkAllAsRead(userId, role);
+    sendSuccess(res, null, 'Todas las notificaciones marcadas como leídas');
+  } catch (error) {
+    sendError(res, 'Error actualizando notificaciones', 500);
   }
 }

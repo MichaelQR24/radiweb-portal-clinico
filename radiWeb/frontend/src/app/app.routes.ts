@@ -50,6 +50,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/admin/audit-log/audit-log.component').then(m => m.AuditLogComponent),
   },
   {
+    path: 'notificaciones',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/notifications/notifications.component').then(m => m.NotificationsComponent),
+  },
+  {
     path: '',
     redirectTo: '/login',
     pathMatch: 'full',
