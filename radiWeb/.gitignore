@@ -1,0 +1,28 @@
+# Logs y archivos temporales de Azure
+*.log
+*.zip
+extracted_logs/
+extracted_logs_login/
+extracted_logs_new/
+extracted_logs_notifications_tar/
+
+# Node / Angular dependency directories
+node_modules/
+dist/
+.angular/
+
+# Environment files and credentials
+.env
+.env.local
+.env.production
+.env.development
+.env.staging
+
+# Local storage mock
+backend/mock-storage/
+backend/logs/
+
+# IDE files
+.vscode/
+.idea/
+.gemini/

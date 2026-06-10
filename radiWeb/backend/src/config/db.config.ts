@@ -11,7 +11,11 @@ const dbConfig: mysql.PoolOptions = {
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  multipleStatements: true
+  multipleStatements: true,
+  // Azure MySQL Flexible Server requiere SSL (se activa automáticamente si no es localhost)
+  ssl: process.env['DB_HOST'] && process.env['DB_HOST'] !== 'localhost' 
+    ? { rejectUnauthorized: false } 
+    : undefined
 };
 
 let pool: mysql.Pool | null = null;

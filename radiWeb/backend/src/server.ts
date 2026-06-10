@@ -20,6 +20,7 @@ import auditRoutes from './routes/audit.routes';
 import notificationRoutes from './routes/notification.routes';
 
 const app = express();
+app.set('trust proxy', 1); // Confiar en el balanceador de carga de Azure App Service (1 hop)
 const PORT = parseInt(process.env['PORT'] ?? '3000', 10);
 const FRONTEND_URL = process.env['FRONTEND_URL'] ?? 'http://localhost:4200';
 
